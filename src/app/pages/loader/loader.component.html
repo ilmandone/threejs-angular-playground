@@ -1,0 +1,11 @@
+<div #three class="absolute top-0 left-0 w-screen h-screen"></div>
+@if(loadingProgress < 100) {
+<div
+  [className]="
+    'absolute top-0 left-0 w-screen h-screen bg-white flex flex-col justify-center items-center'
+  "
+>
+  <div class="font-semibold">progress</div>
+  <div class="font-light text-2xl my-3">{{ loadingProgress }}</div>
+</div>
+}
