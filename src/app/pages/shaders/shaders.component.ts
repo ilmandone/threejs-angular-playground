@@ -10,16 +10,18 @@ import {
   DirectionalLight,
   IcosahedronGeometry,
   Mesh,
+  MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
   Scene,
-  ShaderMaterial,
   WebGLRenderer
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
-import fragmentShader from './glsl/fragment.glsl';
-import vertexShader from './glsl/vertex.glsl';
+import vertexMain from './glsl/vertex_main.glsl';
+import vertexPars from './glsl/vertex_pars.glsl';
+import fragmentPars from './glsl/fragment_pars.glsl'
+import fragmentMain from './glsl/fragment_main.glsl'
 
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 
@@ -39,7 +41,7 @@ class ShadersComponent implements OnInit {
   private _threeEl = viewChild.required('three', { read: ElementRef });
 
   private _gui = new GUI();
-  private _material!: ShaderMaterial;
+  private _material!: MeshStandardMaterial;
 
   ngOnInit(): void {
     this._init();
@@ -60,7 +62,7 @@ class ShadersComponent implements OnInit {
       0.1,
       100
     );
-    _camera.position.z = -2;
+    _camera.position.z = -4;
 
     const _renderer = new WebGLRenderer({ antialias: true });
     _renderer.shadowMap.enabled = true;
@@ -73,23 +75,48 @@ class ShadersComponent implements OnInit {
 
   private _addLights(scene: Scene) {
     // lighting
-    const dirLight = new DirectionalLight('#ffffff', 0.75);
-    dirLight.position.set(5, 5, 5);
+    const dirLight = new DirectionalLight('#ffffff', 2);
+    dirLight.position.set(5, 5, -5);
     scene.add(dirLight);
 
     const ambientLight = new AmbientLight('#ffffff', 0.2);
     scene.add(dirLight, ambientLight);
   }
 
-  private _buildScene(scene: Scene): ShaderMaterial {
-    const geometry = new IcosahedronGeometry(1, 100);
-    // const geometry = new PlaneGeometry(2, 2, 10, 1);
-    const material = new ShaderMaterial({
-      vertexShader: vertexShader as string,
-      fragmentShader: fragmentShader as string,
-    });
+  private _buildScene(scene: Scene): MeshStandardMaterial {
+    const geometry = new IcosahedronGeometry(1, 200);
+    const material = new MeshStandardMaterial({color: 0x2210FE})
 
-    material.uniforms['uTime'] = { value: 0 };
+    material.onBeforeCompile = (shader) => {
+      // storing a reference to the shader object
+      material.userData['shader'] = shader
+  
+      // uniforms
+      shader.uniforms['uTime'] = { value: 0 }
+
+      const parsVertexString = /* glsl */ `#include <displacementmap_pars_vertex>`
+      shader.vertexShader = shader.vertexShader.replace(
+        parsVertexString,
+        parsVertexString + vertexPars
+      )
+
+      const mainVertexString = /* glsl */ `#include <displacementmap_vertex>`
+      shader.vertexShader = shader.vertexShader.replace(
+        mainVertexString,
+        mainVertexString + vertexMain
+      )
+
+      const mainFragmentString = /* glsl */ `#include <normal_fragment_maps>`
+      const parsFragmentString = /* glsl */ `#include <bumpmap_pars_fragment>`
+      shader.fragmentShader = shader.fragmentShader.replace(
+        parsFragmentString,
+        parsFragmentString + fragmentPars
+      )
+      shader.fragmentShader = shader.fragmentShader.replace(
+        mainFragmentString,
+        mainFragmentString + fragmentMain
+      )
+    }
 
     const ico = new Mesh(geometry, material);
     ico.rotation.y = -Math.PI;
@@ -118,8 +145,8 @@ class ShadersComponent implements OnInit {
   //#region Runtime
 
   private _animate() {
-
-    this._material.uniforms['uTime'].value += 0.002;
+    if(this._material.userData['shader'])
+    this._material.userData['shader'].uniforms['uTime'].value += 0.002;
 
     this._controls.update();
     this._renderer.render(this._scene, this._camera);
