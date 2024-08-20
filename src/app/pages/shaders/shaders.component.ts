@@ -12,10 +12,9 @@ import {
   Mesh,
   PCFShadowMap,
   PerspectiveCamera,
-  PlaneGeometry,
   Scene,
   ShaderMaterial,
-  WebGLRenderer,
+  WebGLRenderer
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
@@ -83,15 +82,14 @@ class ShadersComponent implements OnInit {
   }
 
   private _buildScene(scene: Scene): ShaderMaterial {
-    // const geometry = new IcosahedronGeometry(1, 5);
-    const geometry = new PlaneGeometry(2, 2, 10, 1);
+    const geometry = new IcosahedronGeometry(1, 100);
+    // const geometry = new PlaneGeometry(2, 2, 10, 1);
     const material = new ShaderMaterial({
       vertexShader: vertexShader as string,
       fragmentShader: fragmentShader as string,
     });
 
     material.uniforms['uTime'] = { value: 0 };
-    material.uniforms['uRadius'] = { value: 0.5 };
 
     const ico = new Mesh(geometry, material);
     ico.rotation.y = -Math.PI;
@@ -112,7 +110,7 @@ class ShadersComponent implements OnInit {
     );
 
     // GUI
-    this._gui.add(this._material.uniforms['uRadius'], "value").min(0).max(1).step(0.01);
+    // this._gui.add(this._material.uniforms['uRadius'], "value").min(0).max(1).step(0.01);
   }
 
   //#edndregion
@@ -120,6 +118,9 @@ class ShadersComponent implements OnInit {
   //#region Runtime
 
   private _animate() {
+
+    this._material.uniforms['uTime'].value += 0.002;
+
     this._controls.update();
     this._renderer.render(this._scene, this._camera);
   }
